@@ -38,15 +38,17 @@ def get_training_data(source_file_name):
     return training_data, class_map
 
 
-def predict(region, training_data, class_map):
+def predict(region, trained_model, class_map):
     # extract wnd-charm features from region
     target_features = get_target_features(region)
 
     # classify target features using training data
-    target_class = classify(training_data, target_features)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
 
-    # return class name and confidence
-    return class_map[target_class]
+        target_prediction = trained_model.predict(target_features)
+
+    return class_map[target_prediction[0]]
 
 
 def get_image_metadata(metadata, source_file_name):
@@ -132,7 +134,7 @@ def get_target_features(region):
     return target_features
 
 
-def classify(training_data, target_features):
+def get_trained_model(training_data):
     alpha = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 10]
     ridge_params = {'alpha': alpha}
 
@@ -152,6 +154,6 @@ def classify(training_data, target_features):
             training_data.ix[:, -3].astype('int')
         )
 
-        target_prediction = pipe.predict(target_features)
+    print "Loaded trained model"
 
-    return target_prediction[0]
+    return pipe
