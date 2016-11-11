@@ -233,6 +233,9 @@ class Application(Tkinter.Frame):
         self.pack()
 
     def on_draw_button_press(self, event):
+        # clear region class
+        self.region_class.set('')
+
         # starting coordinates
         self.start_x = self.canvas.canvasx(event.x)
         self.start_y = self.canvas.canvasy(event.y)
