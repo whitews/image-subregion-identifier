@@ -30,10 +30,10 @@ class Application(Tkinter.Frame):
         self.image_name = None
         self.image_dir = None
 
-        # Detected regions will be saved as a dictionary with the bounding
-        # rectangles canvas ID as the key. The value will be another dictionary
-        # containing the contour itself and the rectangle coordinates
-        self.regions = None
+        # Training data will be loaded when a new image is opened by the user,
+        # we cache it here b/c it takes a while to produce
+        self.training_data = None
+        self.class_map = None
 
         self.region_class = Tkinter.StringVar()
 
@@ -297,7 +297,7 @@ class Application(Tkinter.Frame):
         region = self.image.crop(corners)
 
         # identify best class for region
-        predicted_class = utils.predict(region, self.image_name)
+        predicted_class = utils.predict(region, self.training_data, self.class_map)
 
         self.region_class.set(predicted_class)
 
@@ -423,6 +423,8 @@ class Application(Tkinter.Frame):
 
         self.image_name = os.path.basename(selected_file.name)
         self.image_dir = os.path.dirname(selected_file.name)
+
+        self.training_data, self.class_map = utils.get_training_data(self.image_name)
 
 root = Tkinter.Tk()
 app = Application(root)

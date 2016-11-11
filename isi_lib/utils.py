@@ -18,7 +18,7 @@ METADATA_FILE = "metadata_table_all.csv"
 TMP_TARGET_TIFF = 'tmp.tiff'
 
 
-def predict(region, source_file_name):
+def get_training_data(source_file_name):
     # load metadata
     metadata = pd.read_csv("/".join([TRAINING_DATA_DIR, METADATA_FILE]), index_col=0)
 
@@ -33,6 +33,12 @@ def predict(region, source_file_name):
         probes
     )
 
+    print "Loaded training data"
+
+    return training_data, class_map
+
+
+def predict(region, training_data, class_map):
     # extract wnd-charm features from region
     target_features = get_target_features(region)
 
