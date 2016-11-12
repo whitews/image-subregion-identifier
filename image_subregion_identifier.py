@@ -10,10 +10,10 @@ from isi_lib import utils
 
 BACKGROUND_COLOR = '#ededed'
 
-WINDOW_WIDTH = 900
+WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 720
 
-PREVIEW_SIZE = 200  # height & width of preview in pixels
+PREVIEW_SIZE = 256  # height & width of preview in pixels
 
 PAD_SMALL = 2
 PAD_MEDIUM = 4
@@ -30,13 +30,13 @@ class Application(Tkinter.Frame):
         self.image_name = None
         self.image_dir = None
 
-        # Training data will be loaded when a new image is opened by the user,
+        # Trained model will be loaded when a new image is opened by the user,
         # we cache it here b/c it takes a while to produce
-        self.training_data = None
         self.class_map = None
         self.trained_model = None
 
         self.region_class = Tkinter.StringVar()
+        self.region_class_prob = Tkinter.StringVar()
 
         self.master.minsize(width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
         self.master.title("Image Sub-region Identifier")
@@ -177,6 +177,31 @@ class Application(Tkinter.Frame):
         )
         region_class_label.pack(side=Tkinter.RIGHT, anchor=Tkinter.N)
 
+        region_prob_frame = Tkinter.Frame(
+            stats_frame,
+            bg=BACKGROUND_COLOR
+        )
+        region_prob_frame.pack(
+            fill=Tkinter.BOTH,
+            expand=True,
+            anchor=Tkinter.N,
+            pady=(PAD_EXTRA_LARGE, PAD_SMALL),
+            padx=PAD_SMALL
+        )
+        region_prob_desc_label = Tkinter.Label(
+            region_prob_frame,
+            text="Class probabilities: ",
+            bg=BACKGROUND_COLOR
+        )
+        region_prob_desc_label.pack(side=Tkinter.TOP, anchor=Tkinter.W)
+        region_prob_label = Tkinter.Label(
+            region_prob_frame,
+            textvariable=self.region_class_prob,
+            justify=Tkinter.RIGHT,
+            bg=BACKGROUND_COLOR
+        )
+        region_prob_label.pack(side=Tkinter.BOTTOM, anchor=Tkinter.E)
+
         # preview frame holding small full-size depiction of chosen image
         preview_frame = Tkinter.Frame(
             self.right_frame,
@@ -235,6 +260,7 @@ class Application(Tkinter.Frame):
     def on_draw_button_press(self, event):
         # clear region class
         self.region_class.set('')
+        self.region_class_prob.set('')
 
         # starting coordinates
         self.start_x = self.canvas.canvasx(event.x)
@@ -301,9 +327,17 @@ class Application(Tkinter.Frame):
         region = self.image.crop(corners)
 
         # identify best class for region
-        predicted_class = utils.predict(region, self.trained_model, self.class_map)
+        predicted_class, probabilities = utils.predict(region, self.trained_model, self.class_map)
+
+        if probabilities is not None:
+            prob_str = "\n".join(
+                ["%s%9.2f%%" % (p[0], p[1] * 100.0) for p in probabilities]
+            )
+        else:
+            prob_str = ''
 
         self.region_class.set(predicted_class)
+        self.region_class_prob.set(prob_str)
 
     def set_preview_rectangle(self):
         x1, x2 = self.scrollbar_h.get()
@@ -390,6 +424,7 @@ class Application(Tkinter.Frame):
         self.canvas.delete('all')
         self.rect = None
         self.region_class.set('')
+        self.region_class_prob.set('')
 
         # some of the files may be 3-channel 16-bit/chan TIFFs, which
         # PIL doesn't support. OpenCV can read these, but converts them
@@ -428,8 +463,11 @@ class Application(Tkinter.Frame):
         self.image_name = os.path.basename(selected_file.name)
         self.image_dir = os.path.dirname(selected_file.name)
 
-        self.training_data, self.class_map = utils.get_training_data(self.image_name)
-        self.trained_model = utils.get_trained_model(self.training_data)
+        self.trained_model, self.class_map = utils.get_trained_model(
+            self.image_name,
+            classifier='svc',
+            cached=True
+        )
 
 root = Tkinter.Tk()
 app = Application(root)
