@@ -251,6 +251,7 @@ class Application(Tkinter.Frame):
         self.pan_start_y = None
 
         self.image = None
+        self.hsv_image = None
         self.tk_image = None
         self.preview_image = None
         self.preview_rectangle = None
@@ -324,10 +325,15 @@ class Application(Tkinter.Frame):
 
         corners = self.canvas.coords(self.rect)
         corners = tuple([int(c) for c in corners])
-        region = self.image.crop(corners)
+
+        input_dict = {
+            'region': self.hsv_image[corners[1]:corners[3], corners[0]:corners[2], :],
+            'model': self.trained_model,
+            'class_map': self.class_map
+        }
 
         # identify best class for region
-        predicted_class, probabilities = utils.predict(region, self.trained_model, self.class_map)
+        predicted_class, probabilities = utils.predict(input_dict)
 
         if probabilities is not None:
             prob_str = "\n".join(
@@ -436,6 +442,7 @@ class Application(Tkinter.Frame):
             cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB),
             'RGB'
         )
+        self.hsv_image = cv2.cvtColor(np.array(self.image), cv2.COLOR_RGB2HSV)
         height, width = self.image.size
         self.canvas.config(scrollregion=(0, 0, height, width))
         self.tk_image = ImageTk.PhotoImage(self.image)
